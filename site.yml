@@ -11,6 +11,7 @@
 - name: AWS Instance Update
   hosts: launched
   gather_facts: true
+  remote_user: ec2-user
   roles:
   - role: update_instance
  
