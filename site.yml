@@ -5,18 +5,14 @@
   connection: local
   vars_files:
     - group_vars/dev/main.yml
-  tasks:
-  - include_role:
-      name: build_instance
-    when: build_instance == "true"
- 
+  roles:
+  - role: build_instances
+
 - name: AWS Instance Update
   hosts: launched
   gather_facts: true
-  tasks:
-  - include_role:
-      name: update_instance
-    when: configure_instance == "true"
+  roles:
+  - role: update_instance
  
  
 - name: AWS Cleanup
@@ -25,7 +21,5 @@
   gather_facts: true
   vars_files:
     - group_vars/dev/main.yml
-  tasks:
-  - include_role:
-      name: cleanup
-    when: instance_cleanup == "true"
+  roles:
+  - role: cleanup
