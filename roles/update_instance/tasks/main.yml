@@ -1,0 +1,100 @@
+---
+- name: Install Capsule Katello RPM
+  command: rpm -U http://<satellite server>/pub/katello-ca-consumer-latest.noarch.rpm
+ 
+- name: Register with Satellite
+  command: subscription-manager register --org="" --activationkey=""
+  ignore_errors: yes
+ 
+- name: Ensure repo is setup
+  wait_for:
+    path: /etc/yum.repos.d/redhat.repo
+    search_regex: <satellite server>
+ 
+- name: Update Instance
+  yum:
+    name: '*'
+    state: latest
+    disable_excludes: all
+ 
+- name: Clean up Instance
+  shell: "{{ item }}"
+  with_items:
+    - sed -i 's/enabled=1/enabled=0/' /etc/yum.repos.d/*.repo
+    - subscription-manager unregister
+    - subscription-manager clean
+    - systemctl disable puppet
+    - systemctl stop puppet
+    - rm -f /var/lib/puppet/ssl/private_keys/*.pem
+    - rm -f /var/lib/puppet/ssl/public_keys/*.pem
+    - rm -f /var/lib/puppet/ssl/certificate_requests/*.pem
+    - rm -f /var/lib/puppet/ssl/certs/*.pem
+    - rpm -e $(rpm -qa | grep katello-ca-consumer)
+    - rm -f /etc/ssh/ssh_host_*
+    - find /etc -name *.cibackup -exec rm -f {} \;
+    - echo "" > /etc/hostname
+    - sed -i '/^10.193/d' /etc/hosts
+    - rm -rf /var/tmp/*
+    - rm -rf /tmp/*
+ 
+- name: Ensure bootstrap.sh doesn't exist
+  file:
+    path: /root/cloud-rhel7-bootstrap.sh
+    state: absent
+ 
+- name: Ensure Logs are removed
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /var/log/sssd/sssd.log
+    - /var/log/sssd/sssd_default.log
+    - /var/log/sssd/ldap_child.log
+    - /var/log/sssd/sssd_nss.log
+    - /var/log/sssd/sssd_pam.log
+    - /var/log/rhsm/rhsmcertd.log
+    - /var/log/rhsm/rhsm.log
+    - /var/log/sa/sa24
+    - /var/log/audit/audit.log
+    - /var/log/tuned/tuned.log
+    - /var/log/boot.log
+    - /var/log/numad.log
+    - /var/log/messages
+    - /var/log/syslogaudit.log
+    - /var/log/wpa_supplicant.log
+    - /var/log/secure
+    - /var/log/maillog
+    - /var/log/cron
+    - /var/log/cloud-init.log
+    - /var/log/cloud-init-output.log
+ 
+- name: Remove history
+  shell: cat /dev/null > ~/.bash_history && history -c
+ 
+- name: Grab major/minor Version with period
+  shell: cat /etc/redhat-release |sed 's/[A-Z,a-z]//g' |awk '{print $1}'
+  register: release_with_period
+ 
+- name: Grab major/minor Version without period
+  shell: cat /etc/redhat-release |sed 's/[A-Z,a-z,\.]//g' |awk '{print $1}'
+  register: release_without_period
+ 
+- name: Set Date Format
+  shell: date +%Y%m%d
+  register: date_format
+ 
+- name: Get Instance ID
+  shell: curl -sf http://169.254.169.254/latest/meta-data/instance-id
+  register: build_instance_id
+ 
+- name: Get Instance AMI ID
+  shell: curl -sf http://169.254.169.254/latest/meta-data/ami-id
+  register: build_image_id
+ 
+- name: Set facts up
+  set_fact:
+   release_with_period: "{{ release_with_period.stdout }}"
+    release_without_period: "{{ release_without_period.stdout }}"
+    date_format: "{{ date_format.stdout }}"
+    build_instance_id: "{{ build_instance_id.stdout }}"
+    build_image_id: "{{ build_image_id.stdout }}"

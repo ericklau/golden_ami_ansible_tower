@@ -1,0 +1,39 @@
+---
+- name: Set facts for localhost from instance build
+  set_fact:
+    release_with_period: "{{ hostvars[groups['launched'][0]]['release_with_period'] }}"
+    release_without_period: "{{ hostvars[groups['launched'][0]]['release_without_period'] }}"
+    date_format: "{{ hostvars[groups['launched'][0]]['date_format'] }}"
+    build_instance_id: "{{ hostvars[groups['launched'][0]]['build_instance_id'] }}"
+    build_image_id: "{{ hostvars[groups['launched'][0]]['build_image_id'] }}"
+    image_version_number: 1
+ 
+- name: Set facts for new image
+  set_fact:
+    new_image_name: "i-rhel{{ release_without_period }}-base-{{ date_format }}0"
+ 
+- name: Stop Instance
+  ec2:
+    state: stopped
+    instance_ids: "{{ build_instance_id }}"
+    region: "{{ region }}"
+    wait: yes
+ 
+- name: Find Golden Images
+  ec2_ami_facts:
+    owners: "{{ owners }}"
+    filters:
+      "tag:Name": "RHEL*"
+    region: "{{ region }}"
+  register: amis
+ 
+- name: Create Image first version
+  ec2_ami:
+    instance_id: "{{ build_instance_id }}"
+    wait: yes
+    name: "{{ new_image_name }}{{ image_version_number }}"
+    description: Golden Image for RHEL Builds
+    region: "{{ region }}"
+    state: present
+    tags:
+      Name: RHEL {{ release_with_period }} Golden Image - {{ date_format }}

@@ -1,0 +1,41 @@
+---
+- name: Find Golden Images
+  ec2_ami_facts:
+    owners: "{{ owners }}"
+    filters:
+      "tag:Name": "RHEL*"
+    region: "{{ region }}"
+  register: amis
+ 
+- name: Sort Golden Images
+  set_fact:
+    latest_ami: "{{ amis.images |sort(attribute='creation_date') | last }}"
+ 
+- name: Create Instance
+  ec2:
+    key_name: "{{ keypair }}"
+    group: "{{ security_group }}"
+    instance_type: "{{ instance_type }}"
+    image: "{{ latest_ami.image_id }}"
+    wait: true
+    region: "{{ region }}"
+    vpc_subnet_id: "{{ subnet }}"
+    assign_public_ip: no
+    instance_tags:
+      Name: Ansible Image Automation
+  register: ec2
+ 
+- name: Add Instance To In Memory Inventory
+  add_host:
+    hostname: "{{ item.private_ip }}"
+    groupname: launched
+  with_items: "{{ ec2.instances }}"
+ 
+- name: Wait For SSH
+  wait_for:
+    host: "{{ item.private_ip }}"
+    port: 22
+    delay: 60
+    timeout: 320
+    state: started
+  with_items: "{{ ec2.instances }}"

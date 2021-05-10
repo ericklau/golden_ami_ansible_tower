@@ -1,0 +1,31 @@
+---
+- name: AWS Instance Creation
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  vars_files:
+    - group_vars/dev/main.yml
+  tasks:
+  - include_role:
+      name: build_instance
+    when: build_instance == "true"
+ 
+- name: AWS Instance Update
+  hosts: launched
+  gather_facts: true
+  tasks:
+  - include_role:
+      name: update_instance
+    when: configure_instance == "true"
+ 
+ 
+- name: AWS Cleanup
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars_files:
+    - group_vars/dev/main.yml
+  tasks:
+  - include_role:
+      name: cleanup
+    when: instance_cleanup == "true"

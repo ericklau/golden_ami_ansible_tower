@@ -1,0 +1,3 @@
+build_instance: true
+configure_instance: true
+instance_cleanup: true
