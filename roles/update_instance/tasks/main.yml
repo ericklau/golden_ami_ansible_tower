@@ -94,7 +94,7 @@
 - name: Set facts up
   set_fact:
    release_with_period: "{{ release_with_period.stdout }}"
-    release_without_period: "{{ release_without_period.stdout }}"
-    date_format: "{{ date_format.stdout }}"
-    build_instance_id: "{{ build_instance_id.stdout }}"
-    build_image_id: "{{ build_image_id.stdout }}"
+   release_without_period: "{{ release_without_period.stdout }}"
+   date_format: "{{ date_format.stdout }}"
+   build_instance_id: "{{ build_instance_id.stdout }}"
+   build_image_id: "{{ build_image_id.stdout }}"
